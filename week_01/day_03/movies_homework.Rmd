@@ -1,0 +1,92 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+```
+
+
+```{r}
+movies_data <- read_csv(
+  "data/movies.csv"
+)
+
+movies_data
+```
+## Q1: write down any general thoughts you get looking at the data
+
+# do title and original_title have the same values all over?
+# how are they sorted?
+# columns are too wide
+# "0" entered in budget
+# overview
+# "0" entered in revenue
+
+
+## Q2: Select the three columns that contain the movies’ titles, their runtime as well as their budget and save them into a new variable called movies_selected.
+
+
+```{r}
+movies_selected <- select(movies_data, title, runtime, budget)
+
+movies_selected
+```
+
+## Q3: Count the number of missing values in each column.
+
+
+```{r}
+movies_selected %>%
+  summarise(count = sum(is.na(title)))
+```
+
+```{r}
+movies_selected %>%
+  summarise(count = sum(is.na(runtime)))
+```
+
+```{r}
+movies_selected %>%
+  summarise(count = sum(is.na(budget)))
+```
+
+## Q4: use the function na_if to convert runtimes of length 0 into NAs. Save this into a new variable called movies_runtime. Then count how many missing values there are now in the column runtime.
+
+```{r}
+movies_runtime <- movies_selected %>%
+  mutate(runtime = na_if(runtime, 0))
+
+movies_runtime
+```
+
+
+```{r}
+movies_runtime %>%
+  summarise(count = sum(is.na(runtime)))
+```
+
+
+
+## Q5: Impute the missing values in runtime with the median runtime using coalesce and save this into a new variable called movies_imputed. There should now be no missing values in the column runtime - check this to make sure.
+
+```{r}
+med_runtime <- movies_runtime %>%
+  arrange(desc(runtime)) %>%
+  pull(runtime) %>%
+  median(runtime, na.rm = TRUE)
+
+med_runtime
+
+# movies_imputed <- mutate(coalesce(runtime, median())
+
+                         
+```
+
+
+
+## Q6: use the slice_min and slice_max functions on movies_imputed to get the movies with the 10 shortest and 10 longest runtimes.
+
+
+## Q7: Using the if_else function, impute anything with a budget below $100 with the median budget. Overwrite your movies_imputed so it contains the new budget values.
