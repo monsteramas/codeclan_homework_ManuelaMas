@@ -45,6 +45,9 @@ drinks_content %>%
   summarise(mean_calories = mean(Calories))
 ```
 
+- summarise need to be paired with an aggregate operation eg. means,
+goiing from several values to 1 value that represents all of them
+
 ```{r}
 drinks_content %>%
   select(Beverage_category, Beverage, Beverage_prep, Calories) %>%
@@ -53,6 +56,8 @@ drinks_content %>%
   summarise(mean_calories = mean(Calories)) %>%
   arrange(desc(mean_calories))
 ```
+
+- group_by aggregates always with another funcion, mutate or summarise
 
 ```{r}
 drinks_content %>%
@@ -64,6 +69,8 @@ drinks_content %>%
   slice_head(n = 3)
   
 ```
+
+- use head(3) instead of slice
 
 ```{r}
 drinks_content %>%
@@ -105,6 +112,42 @@ average_cal_per_bev_prep
 ```
 
 ------not found
+
+Solution:
+
+1. what is the average cal of all drinks: AC_all
+
+2. create some summary table that shows the average cals for each berverage prep type
+
+- group by
+- summarise
+
+3. filter the summary table so that only shows beverage prep types that contain more than AC_all
+
+```{r}
+# 1. what is the average cal of all drinks: AC_all
+drinks_content %>%
+  summarise(mean_calories = mean(Calories)) %>%
+  pull()
+
+drinks_content %>%
+  pull(Calories) %>%
+  mean()
+
+# pull takes all the values in a column and returns them as a vector with n values
+
+# 2. create some summary table that shows the average cals for each berverage prep type
+
+drinks_content %>%
+  group_by(Bevarage_prep) %>%
+  summarise(mean_cals = mean(Calories)) %>%
+  # 3. filter data to show only beverage prep types with more than the avg number of cals of all drinks
+  filter(mean_cals > avg_cals_all_drinks) %>%
+  arrange(desc(mean_cals)) 
+x
+```
+
+
 
 
 Q7: Which is the best type of coffee drink (and by ‘drink’ we mean the combination of Beverage_category, Beverage and Beverage_prep) to get if you’re worried about consuming too many calories?
