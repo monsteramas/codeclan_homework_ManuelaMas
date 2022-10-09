@@ -1,0 +1,131 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+books <- read_csv("data/books.csv")
+```
+
+# Q0: Investigate the dataset
+
+```{r}
+spec(books)
+
+ncol(books)
+
+nrow(books)
+      
+dim(books) 
+
+names(books)
+
+head(books)
+
+tail(books)
+
+view(books)
+
+books
+      
+```
+
+
+# Q1 : Show all languages ordered by book count 
+
+```{r}
+# select the columns to keep
+book_study <- select(books, bookID, title, authors, average_rating, language_code, publication_date)
+
+
+# how many languages there are?
+book_study %>%
+  group_by(language_code) %>% 
+  summarise(book_count = n()) %>% 
+  arrange(desc(book_count))
+```
+
+
+# Q2 : Show all english language authors in the dataset, sorted by descending book count
+
+```{r}
+book_study %>%
+  filter(language_code == "eng") %>% 
+  group_by(authors) %>% 
+  summarise(book_count = n()) %>% 
+  arrange(desc(book_count))
+```
+
+
+# Q3: Find the 3 authors (eng) with the highest average rating
+
+```{r}
+book_study %>%
+  filter(language_code == "eng") %>% 
+  group_by(authors) %>% 
+  summarise(average_rating = mean(average_rating, na.rm = TRUE)) %>% 
+  slice_max(average_rating, n = 3, with_ties = FALSE)
+
+# with_ties = TRUE I get all the authors with average_rating = 5 (i.e. 16)
+```
+
+
+# Q4: Separate and count the english books from all other languages
+
+```{r}
+book_study %>% 
+  select(language_code) %>% 
+  mutate(language_code = recode(language_code,"en-US" = "eng", "en-GB" = "eng", "en-CA" = "eng", "eng" = "eng", .default = "other")) %>% 
+  group_by(language_code) %>% 
+  summarise(book_count = n())
+```
+
+
+
+
+# Q5: Separate and count the english books from all other languages using case_when
+
+```{r}
+book_study %>% 
+  select(language_code) %>% 
+  mutate(language_code = case_when(
+    substr(language_code, 1, 2) == "en" ~ "eng",
+    TRUE ~ "other"
+    )
+  ) %>% 
+  group_by(language_code) %>% 
+  summarise(book_count = n())
+
+# tried using starts_with, could not use in this case, found substr()
+```
+
+
+```{r}
+# when noticed the book_count returned was different from the one in Q4 (because of the enm language included) I added the string language_code == "eng" ~ "eng" 
+
+book_study %>% 
+  select(language_code) %>% 
+  mutate(language_code = case_when(
+    substr(language_code, 1, 3) == "en-" ~ "eng",
+    language_code == "eng" ~ "eng",
+    TRUE ~ "other"
+    )
+  ) %>% 
+  group_by(language_code) %>% 
+  summarise(book_count = n())
+
+```
+
+
+
+
+
+# Q Optional: Order the books by publication date, group them by decades, assess the average rating for each decade, assess the decades with the highest and lowest average rating . Find the decades with most and least books published
+
+
+```{r}
+# as.Date()
+# not clear how dates work 
+```
+
