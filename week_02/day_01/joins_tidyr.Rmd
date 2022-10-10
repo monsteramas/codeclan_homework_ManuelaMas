@@ -71,7 +71,7 @@ customers
 ```
 
 ```{r}
-inner_join(cards, customers, "cust_id")
+left_join(cards, customers, "cust_id")
 ```
 
 
@@ -80,7 +80,7 @@ inner_join(cards, customers, "cust_id")
 
 Join the data containing fraud details with transaction details so all rows of both tables are kept. What does the resulting row number tell you?
 
-I expect 100000 rows returned.
+I expected at least 10,000 rows returned; as they are 10,000, all the records in the fraud dataset have a match in the transactions dataset.
 
 ```{r}
 fraud
@@ -100,12 +100,7 @@ full_join(transactions, fraud, "transaction_id")
 Join the data containing card details with transaction details so rows from the first which have matching ones in the second are returned, but only return rows in the first table once.
 
 ```{r}
-transactions <- transactions %>% 
-  rename("card_number" = "credit_card_id")
-
-transactions
-
-semi_join(cards, transactions, by = "card_number")
+semi_join(cards, transactions, by = c("card_number" = "credit_card_id"))
 ```
 
 
@@ -139,10 +134,22 @@ tidy_hats
 Unite day, month, and year columns into a column called date using a suitable separator. Then find the date where the most berets were observed.
 
 ```{r}
-tidy_hats %>% 
+with_dates <- tidy_hats %>% 
   unite(date, c("day", "month", "year"), 
-           sep = "/")
+           sep = "/") 
+
+with_dates
+
+with_dates %>% 
+  group_by(date) %>% 
+  summarise(observation_total = sum(observation_count)) %>% 
+  arrange(desc(observation_total)) %>% 
+  slice_head(n = 1)
 ```
+
+
+
+
 
 ### 2 Extension
 
@@ -154,22 +161,24 @@ tidy_hats %>%
 
 Can you join all 4 datasets together so that you’re left with a dataset that looks like below with 109 rows and 12 columns?
 
-
 ```{r}
-card_customer <- inner_join(cards, customers, "cust_id")
+step_1 <- left_join(cards, customers, "cust_id")
 
-card_customer
+step_1
 ```
 
 ```{r}
-transaction_fraud <- full_join(transactions, fraud, "transaction_id")
+step_2 <- inner_join(step_1, transactions, by = c("card_number" = "credit_card_id"))
 
-transaction_fraud
+step_2
 ```
 
 ```{r}
-semi_join(card_customer, transaction_fraud, by = "card_number")
+final_table <- right_join(step_2, fraud, "transaction_id")
+
+final_table
 ```
+
 
 ## 2.2 tidyr
 
