@@ -194,3 +194,17 @@ view(exam_scores)
 exam_scores
 ```
 
+```{r}
+exam_tidy <- exam_scores %>% 
+  pivot_longer(cols = starts_with("exam"),
+               names_to = "exam_question",
+               values_to = "score")
+
+exam_tidy
+```
+
+```{r}
+exam_tidy %>% 
+  separate(exam_question, c())
+```
+
