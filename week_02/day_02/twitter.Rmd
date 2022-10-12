@@ -75,6 +75,14 @@ code_clan_tweets %>%
   summarise(character_mean = mean(display_text_width, na.rm = TRUE))
 ```
 
+- needs googling to find the function str_lenght
+
+```{r}
+code_clan_tweets %>% 
+  mutate(char_count = str_length(text)) %>% 
+  summarise(av_chars = mean(char_count),
+            av_dtw = mean(display_text_width))
+```
 
 
 # Question 6.
@@ -85,6 +93,10 @@ code_clan_info <- read_csv("data/code_clan_info.csv")
 
 code_clan_info
 
+code_clan_tweets %>% 
+  count(tweet_id)
+
+# preferable to use the left_join, but in this specific case it works the inner_join and full_join too
 code_clan_joined <- inner_join(code_clan_tweets, code_clan_info, "tweet_id")
 ```
 
@@ -96,11 +108,20 @@ From your new joined data, create a new tibble codeclan_hashtags containing only
 codeclan_hashtags <- code_clan_joined %>% 
   select(tweet_id, hashtags)
 
+
 codeclan_hashtags %>% 
   mutate(hashtags = str_to_lower(hashtags)) %>% 
   filter(hashtags != "NA")
 ```
 
+
+- correction by Jamie - not sure it's copied correctly:
+```{r}
+codeclan_hashtags <- code_clan_joined %>% 
+  select(tweet_id, hashtags) %>%
+  drop_na(hashtags) %>% 
+  mutate(hashtags = str_to_lower(hashtags))
+```
 
 
 ## Extensions
@@ -111,11 +132,19 @@ Some tweets have more than one hashtag, denoted by the c( symbols at the start o
 Hint
 Try a regex pattern "c\\(". The double backslash is necessary in R to mark a backslash as itself being escaped.
 
-
+wrong answer:
 ```{r}
 codeclan_hashtags %>% 
   filter(hashtags, str_detect("c\\("))
 ```
+
+
+solution:
+```{r}
+codeclan_hashtags %>% 
+  filter(str_detect(hashtags, "^c\\("))
+```
+
 
 
 # Question 9.
@@ -123,8 +152,44 @@ Use the str_detect() function to find all tweets with text that mentions “Edin
 Hint
 You may need to make sure your tweets are all the same case before searching.
 
+```{r}
+code_clan_tweets %>% 
+  filter(str_detect(str_to_lower(text), "edinburgh"))
+```
+
+
+
 
 # Question 10.
 Use str_extract_all() with a regular expression to find out which Twitter users CodeClan have been tweeting.
 Hint
 Think about all the different characters which could be in a Twitter username, do a bit of online research
+
+
+
+```{r}
+# from Jamie P.
+
+code_clan_tweets %>%
+  select(text) %>%
+  mutate(text = str_to_lower(text)) %>%
+  mutate(text = str_extract_all(text, "@[a-z0-9_]+")) %>%
+  pull(text) %>%
+  flatten_chr() %>%
+  tibble() %>%
+  rename("users" =".") %>% 
+  distinct()
+```
+
+```{r}
+# from Dave:
+
+code_clan_tweets %>%
+  select(text) %>%
+  mutate(user_tweeeted = str_extract_all(text, "@[A-z0-9_]+")) %>%
+  unnest(cols = c(user_tweeeted)) %>%
+  group_by(user_tweeeted) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count))
+```
+
