@@ -199,6 +199,11 @@ SELECT
         EXTRACT (YEAR FROM start_date),
         ')') AS badge_label
 FROM employees;
+/* To my future self: 
+- Note 1: as the fucker wouldn't execute commands in the order you write them,
+remember it's pointless trying to create the month and year column first (with 'AS').
+- Note 2: the 'TO_CHAR' function creates spaces after the month (padding); 
+to get rid of them you need the 'FM' prefix in front of 'Month' ('FMMonth').
 
 
 /* Q17 - Return the first_name, last_name and salary of all employees 
