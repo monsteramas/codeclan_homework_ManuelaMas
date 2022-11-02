@@ -150,6 +150,29 @@ backpack %>%
     fill = "Back Pain"
   )
 ```
+```{r}
+# alternative solution
+
+backpack %>%
+  mutate(
+    back_problems = ifelse(
+      back_problems == 1, "Yes", "No"
+      )
+  ) %>%
+  ggplot(
+    aes(x = sex, fill = back_problems))+
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = scales::percent)+
+  scale_fill_manual(values = c("Yes" =  "cornflowerblue", "No" = "darkorchid")) +
+  labs(
+    y = "Percentage of Students",
+    x = "Report of back pain"
+  )
+```
+
+
+
+
 
 The percentage of women reporting back problems is much higher than the percentage of men (over the double).
 
