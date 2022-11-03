@@ -1,0 +1,30 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+olympics <- CodeClanData::olympics_overall_medals
+```
+
+
+```{r}
+whisky <- CodeClanData::whisky %>% 
+  janitor::clean_names()
+
+```
+
+```{r}
+whisky %>% 
+  pivot_longer(cols = 7:18, names_to = "tasting_notes", values_to = "value") %>% 
+  filter(region == "Islay") %>% 
+  filter(distillery == "Bunnahabhain") %>% 
+  ggplot() +
+  geom_col(aes(x = tasting_notes, y = value)) +
+  labs(x = "Tasting Notes", y = "Value")
+```
+
+```{r}
+colours()
+```
+
