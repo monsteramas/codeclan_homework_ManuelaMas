@@ -1,0 +1,32 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(CodeClanData)
+```
+
+```{r}
+game_sales
+```
+
+```{r}
+game_sales %>%
+  filter(
+    rating == "E",
+    genre == "Sports"
+  ) %>%
+  ggplot() +
+  aes(
+    x = user_score,
+    y = critic_score
+  ) +
+  geom_point(size = .5, alpha = 0.5) +
+  labs(
+    x = "User Score (0-10)",
+    y = "Critic Score (0-100)"
+  ) + 
+  facet_wrap(~ developer)
+```
