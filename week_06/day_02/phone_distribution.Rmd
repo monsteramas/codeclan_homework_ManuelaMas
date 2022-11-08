@@ -1,0 +1,97 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(janitor)
+library(tidyverse)
+```
+
+
+## Question 1
+Load the data, clean_names() and explore it.
+
+
+```{r}
+phone_ratings <- read_csv(here::here("data/20190928-items.csv")) %>% 
+  clean_names() %>% 
+  select(asin, brand, rating)
+```
+
+```{r}
+head(phone_ratings)
+```
+
+
+
+## Question 2
+Find the brand with the highest numbers of phones in the dataset.
+
+```{r}
+phone_ratings %>% 
+  group_by(brand) %>% 
+  summarise(phone_count = n()) %>% 
+  arrange(desc(phone_count)) %>% 
+  slice_head()
+```
+
+
+
+## Question 3
+For your top brand, plot the distribution of phone ratings as a probability density, overlaying a fitted normal distribution. Do you think the normal distribution provides a good model of these ratings?
+Hint:
+You will need to calculate the mean() and sd() of the ratings to plot the appropriate normal distribution. Alternatively, investigate using the fitdistr() function in the MASS package.
+
+
+```{r}
+samsung_ratings <- phone_ratings %>% 
+  filter(brand == "Samsung")
+```
+
+
+```{r}
+samsung_stats <- samsung_ratings %>% 
+  summarise(
+    mean = mean(rating),
+    sd = sd(rating)
+  )
+```
+
+
+```{r}
+samsung_ratings %>% 
+  ggplot(aes(x = rating)) +
+  geom_histogram(aes(y = ..density..), col = "white", binwidth = 0.1) +
+  stat_function(
+    fun = dnorm,
+    args = list(
+      mean = samsung_stats$mean,
+      sd = samsung_stats$sd
+    ),
+    col = "firebrick",
+    size = 0.5
+  )
+```
+
+The ratings at both tails don't fit in with the bell shape.
+However, if given a reasonable number of bins, the histogram seems to be compatible with the curve.
+
+
+
+## Question 4
+We can be more quantitative in comparing the distribution of top brand ratings with a normal distribution. You calculated the mean() and sd() of your distribution in an earlier question. Use these values to calculate the proportions of ratings within one, two and three standard deviations of the mean. Compare these proportions with those you expect for a normal distribution.
+
+Hint:
+You can use a filter() to get only the ratings within one, two and three standard deviations of the mean, and then think about how to calculate what proportion each of these filtered sets make of the total number of ratings. You’ll need to use three separate filter() and summarise() pipes to do this.
+Further hint:
+Code to filter within one SD
+Here’s the code to filter and summarise the proportion of ratings within one standard deviation of the mean.
+
+
+```{r}
+samsung_ratings %>%
+  filter(rating >= samsung_stats$mean - samsung_stats$sd) %>%
+  filter(rating <= samsung_stats$mean + samsung_stats$sd) %>%
+  summarise(prop_within_1sd = n() / nrow(samsung_ratings))
+```
