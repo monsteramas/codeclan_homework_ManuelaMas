@@ -57,6 +57,7 @@ titanic_table
 ```{r}
 titanic_table <- titanic_table %>%
   adorn_percentages(denominator = "all") %>%
+  adorn_rounding(digits = 4) %>% 
   adorn_title()
 
 titanic_table
@@ -70,6 +71,9 @@ prob_surv_given_crew <- titanic_survivals %>%
 prob_surv_given_crew
 ```
 
+p(survived | crew) = 0.096 /0.403 = 0.2370679
+
+
 ```{r}
 prob_surv_given_passenger <- titanic_survivals %>% 
   filter(crew == "FALSE") %>% 
@@ -77,6 +81,8 @@ prob_surv_given_passenger <- titanic_survivals %>%
 
 prob_surv_given_passenger
 ```
+
+p(survived | passenger) = 0.22655 /0.59674 = 0.3796507
 
 
 
