@@ -34,6 +34,7 @@ phone_ratings %>%
   summarise(phone_count = n()) %>% 
   arrange(desc(phone_count)) %>% 
   slice_head()
+# or slice_max(count, n = 1)
 ```
 
 
