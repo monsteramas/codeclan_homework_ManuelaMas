@@ -1,0 +1,167 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(e1071)
+library(infer)
+library(janitor)
+library(skimr)
+library(tidyverse)
+```
+
+
+
+
+## Task 1
+Load the data, clean_names(), and familiarise yourself with it.
+
+```{r}
+ames <- read_csv(here::here("data/ames.csv")) %>% 
+  clean_names()
+
+glimpse(ames)
+head(ames)
+```
+
+
+
+## Task 2
+Investigate the distribution of lot_area. Is the distribution roughly normal? If not, what problems do you find?
+
+```{r}
+ames %>% 
+  ggplot(aes(x = lot_area)) +
+  geom_histogram(col = "white", 
+                 bins = 50,
+                 fill = "steelblue",
+                 alpha = 0.7)
+```
+
+```{r}
+# assess skewness
+ames %>% 
+  summarise(skew = skewness(lot_area, type = 1))
+
+# five number summary
+ames %>% 
+  select(lot_area) %>% 
+  skim()
+
+# assess outliers with a box plot
+ames %>% 
+  ggplot(aes(x = lot_area)) +
+  geom_boxplot()
+```
+
+The distribution is unimodal, non-normal, highly right-skewed.
+The range is strongly affected by outliers.
+
+
+
+# Task 3
+Compute and visualise a bootstrap sampling distribution for the mean(lot_area) of the sold houses.
+
+```{r}
+# bootstrap distribution workflow and visualisation using the "infer" package  
+ames_infer_resample <- ames %>% 
+  specify(response = lot_area) %>% 
+  generate(reps = 5000, type = "bootstrap") %>% 
+  calculate(stat = "mean")
+
+ames_infer_resample %>%
+  visualise(bins = 30)
+```
+
+
+# Task 4
+Use your bootstrap distribution to calculate a 95% CI for mean(lot_area), and visualise it on the distribution
+
+```{r}
+ames_infer_ci_95 <- ames_infer_resample %>%
+  get_confidence_interval(level = 0.95, type = "percentile")
+
+ames_infer_ci_95
+
+ames_infer_resample %>%
+  visualise(bins = 30) +
+  shade_confidence_interval(endpoints = ames_infer_ci_95)
+```
+
+
+
+## Task 5
+You would like to know the mean(lot_area) of the sold houses with higher confidence. Calculate the 99% CI for this variable (you can re-use your bootstrap distribution from above). Is it narrower or broader than the 95% CI? Does that make sense?
+
+```{r}
+ames_ci_99 <- bootstrap_resample_2930 %>%
+  summarise(
+    mean = mean(mean_lot_area),
+    lower_bound = quantile(mean_lot_area, probs = 0.005),
+    upper_bound = quantile(mean_lot_area, probs = 0.995)
+  )
+
+ames_ci_99
+```
+
+The 99% CI for the mean(lot_area) is wider than the 95% CI, as expected (9817.23-10544.93 as opposed to 9876.433-10456.16).
+
+
+
+## Task 6
+Calculate the point estimate of the mean(lot_area).
+
+```{r}
+mean_infer <- ames_infer_resample %>%
+  summarise(mean = mean(stat))
+
+mean_infer
+```
+
+```{r}
+# compared to the mean of the original data set, they are very close
+ames %>%
+  summarise(mean(lot_area))
+```
+
+
+
+## Extension
+Calculate a point estimate and 95% CI for the proportion of houses in the data built before 1920. 
+Does the number of reps you use matter? [Investigate reps from 200 up to 50000, memory of your laptop permitting].
+
+```{r}
+ames_before_1920 <- ames %>% 
+  filter(year_built < 1920)
+
+# investigate the distribution of sale_price
+ames_before_1920 %>% 
+  ggplot(aes(x = sale_price)) +
+  geom_histogram(col = "white", 
+                 bins = 50,
+                 fill = "steelblue",
+                 alpha = 0.7)
+
+options(scipen = 5)
+```
+
+
+```{r}
+ames_before_1920_infer_resample <- ames_before_1920 %>% 
+  specify(response = sale_price) %>% 
+  generate(reps = 200, type = "bootstrap") %>% 
+  calculate(stat = "mean")
+
+ames_before_1920_infer_resample %>%
+  visualise(bins = 30)
+
+ames_before_1920_infer_ci_95 <- ames_before_1920_infer_resample %>%
+  get_confidence_interval(level = 0.95, type = "percentile")
+
+ames_before_1920_infer_ci_95
+
+ames_before_1920_infer_resample %>%
+  visualise(bins = 30) +
+  shade_confidence_interval(endpoints = ames_before_1920_infer_ci_95)
+```
