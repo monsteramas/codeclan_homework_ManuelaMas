@@ -1,0 +1,272 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(infer)
+msleep <- msleep
+```
+
+
+
+## Question 1
+Explore the dataset and familiarise yourself with it.
+
+```{r}
+glimpse(msleep)
+```
+
+
+## Question 2
+Jabberwockies sleep for around 7 hours a night, on average. Perform an appropriate statistical test to determine whether the mean sleep_total in the sampled population of animal types differs from the typical value for jabberwockies.
+
+
+1 - We are comparing the mean from the msleep sample against the specified value (j_sleep_mean = 7 hours). This is a one-sample mean test.
+
+
+2 - Set a significance level and define hypothesis
+
+alpha: 0.05
+
+H0: average_sleep_animals - 7 == 0
+
+Ha: average_sleep_animals - 7 != 0
+
+
+3 - Calculate observed statistic (mean_sleep)
+
+```{r}
+msleep %>%
+  ggplot(aes(x = sleep_total)) +
+  geom_histogram(col = "white")
+```
+
+
+```{r}
+msleep %>%
+  ggplot(aes(x = sleep_total)) +
+  geom_boxplot()
+```
+
+
+```{r}
+observed_stat <- msleep %>% 
+  summarise(mean_sleep = mean(sleep_total))
+```
+
+The mean_sleep of our sample is 10.43 hours
+
+
+4 - Simulate the situation where the null hypothesis is TRUE, by generating a null distribution
+
+```{r}
+null_distribution <- msleep %>% 
+  specify(response = sleep_total) %>% 
+  hypothesise(null = "point", mu = 7) %>% 
+  generate(reps = 2000, type = "bootstrap") %>% 
+  calculate(stat = "mean")
+```
+
+5 - Visualise the null distribution and overlay the observed statistic
+ 
+```{r}
+null_distribution %>% 
+  visualise(bins = 30) +
+  shade_p_value(
+    obs_stat = observed_stat$mean_sleep, 
+    direction = "both"
+    )
+```
+
+
+6 - Get p-value
+
+```{r}
+p_value <- null_distribution %>% 
+  get_p_value(
+    obs_stat = observed_stat$mean_sleep,
+    direction = "both"
+  )
+```
+
+```{r}
+format.pval(p_value)
+```
+
+7 - Conclusions: With a p-value very close to zero and less than our significance level of 0.05, we may reject the null hypothesis in favour of our alternative hypothesis: the mean sleep_total in the sampled population of animal types differs statistically significantly from the typical value for jabberwockies.
+
+
+
+## Question 3
+Perform an appropriate statistical test to determine whether omnivores sleep for significantly longer than herbivores, on average.
+
+
+1 - We are comparing the mean of omnivores' sleep against herbivores'. This is a two-means independent samples test.
+
+
+2 - Set a significance level and define hypothesis
+
+alpha: 0.05
+
+H0: average_sleep_omni - average_sleep_herbi <= 0
+
+Ha: average_sleep_omni - average_sleep_herbi > 0
+
+
+3 - Calculate observed statistic (mean_sleep_omni, mean_sleep_herbi)
+
+
+```{r}
+omni_herbi <- msleep %>% 
+  filter(vore == "omni" | vore == "herbi") %>% 
+  select(vore, sleep_total)
+```
+
+
+```{r}
+omni_herbi %>% 
+  ggplot(aes(x = vore, y = sleep_total)) +
+  geom_boxplot()
+```
+
+
+```{r}
+omni_herbi %>% 
+  group_by(vore) %>% 
+  summarise(mean_sleep = mean(sleep_total))
+```
+
+
+```{r}
+observed_stat <- omni_herbi %>% 
+  specify(sleep_total ~ vore) %>% # specify sleep_total by vore
+  calculate(stat = "diff in means", 
+            order = c("omni", "herbi") # herbi minus omni
+            ) 
+
+observed_stat
+```
+
+
+4 - Simulate the situation where the null hypothesis is TRUE, by generating a null distribution
+
+```{r}
+null_distribution <- omni_herbi %>% 
+  specify(response = sleep_total, explanatory = vore) %>% 
+  hypothesise(null = "independence") %>% 
+  generate(reps = 1000, type = "permute") %>% 
+  calculate(stat = "diff in means", order = c("omni", "herbi"))
+```
+
+
+5 - Visualise the null distribution and overlay the observed statistic
+
+```{r}
+null_distribution %>% 
+  visualise(bins = 30) +
+  shade_p_value( 
+    obs_stat = observed_stat$stat,
+    direction = "right"
+    )
+```
+
+
+6 - Get p-value
+
+```{r}
+p_value <- null_distribution %>%
+  get_p_value(obs_stat = observed_stat, direction = "right")
+
+p_value
+```
+
+
+7 - Conclusions: With a p-value of 0.128, grater than our significance level of 0.05, we fail to reject the null hypothesis in favour of our alternative hypothesis.
+The mean omni_sleep in the sampled population does not differ statistically significantly from the mean herbi_sleep.
+
+
+
+## Question 4
+Perform an appropriate statistical test to determine whether the proportion of domesticated animal types in the population of animal types is greater than 5%.
+Hint
+Think about creating an is_domesticated variable for the analysis.
+
+
+1 - We are comparing the proportion of domesticated animal type over the whole population of our sample. This is a one-sample proportion test.
+
+
+2 - Set a significance level and define hypothesis
+
+alpha: 0.05
+
+H0: prop_domesticated <= 0.05
+
+Ha: prop_domesticated  > 0.05
+
+
+3 - Calculate observed statistic (prop_domesticated)
+
+```{r}
+print(msleep %>% 
+        group_by(conservation) %>% 
+        summarise(count = n()))
+```
+
+There are 29 NA over 83, this is a significant proportion of the sample and will affect the following calculations if dropped.
+
+```{r}
+msleep <- msleep %>% 
+  filter(!is.na(conservation))
+```
+
+
+```{r}
+observed_stat <- msleep %>% 
+  filter(conservation == "domesticated") %>% 
+  summarise(prop_domesticated = n() / nrow(msleep))
+```
+
+
+4 - Simulate the situation where the null hypothesis is TRUE, by generating a null distribution
+
+```{r}
+domesticated <- msleep %>% 
+  mutate(is_domesticated = if_else(
+    conservation == "domesticated", TRUE, 
+    FALSE)) %>% 
+  select(name, is_domesticated)
+
+domesticated 
+```
+
+
+```{r}
+null_distribution <- domesticated %>%
+  specify(response = is_domesticated, success = "TRUE") %>% 
+  hypothesize(null = "point", p = 0.05) %>%
+  generate(reps = 5000, type = "draw") %>%
+  calculate(stat = "prop") 
+```
+
+5 - Visualise the null distribution and overlay the observed statistic
+
+```{r}
+null_distribution %>% 
+  visualise(bins = 30) +
+  shade_p_value(obs_stat = observed_stat$prop_domesticated,
+                direction = "right")
+```
+
+6 - Get p-value
+
+```{r}
+p_value <- null_distribution %>%
+  get_p_value(obs_stat = observed_stat, direction = "right")
+
+p_value
+```
+
+
+7 - Conclusions: With a p-value very close to zero and less than our significance level of 0.05, we may reject the null hypothesis in favour of our alternative hypothesis: the proportion of domesticated animal types in the population is statistically significantly greater than 5%.
