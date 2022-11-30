@@ -1,0 +1,118 @@
+---
+title: "Untitled"
+author: "Manuela Mastrogiovanni"
+date: "2022-11-28"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(hash)
+library(janitor)
+```
+
+
+## R Markdown
+
+```{r}
+datasets = hash()
+for (filepath in list.files(here::here("raw_data"),
+                            full.names = TRUE)) {
+  datasets[filepath] = read_csv(filepath)
+}
+
+
+for (key in keys(datasets)) {
+  d = datasets[[key]]
+  view(d, title = key)
+}
+```
+
+```{r}
+# hb codes
+hb <- read_csv("raw_data/geography_codes_and_labels_hb2014_01042019.csv")
+# all cancers for the whole scotland
+incidence_scot_level <- read_csv("raw_data/opendata_inc9620_scotland.csv")
+# north / south-east / west of scotland
+incidence_cancer_network_region <- read_csv("raw_data/opendata_inc9620_region.csv")
+# all cancers for each HB for 1996-2020, all ages grouped
+incidence_hb <- read_csv("raw_data/opendata_inc9620_hb.csv") %>% 
+  clean_names()
+# all cancers for each HB for 2016-2020, with age buckets
+five_years_hb <- read_csv("raw_data/opendata_inc1620comb_hb.csv") %>% 
+  clean_names()
+
+```
+
+
+```{r}
+borders_1996_2020 <- incidence_hb %>% 
+  filter(hb == "S08000016")
+
+borders_2016_2020 <- five_years_hb %>% 
+  filter(hb == "S08000016")
+```
+
+```{r}
+borders_1996_2020 %>% 
+  filter(sex != "All" & cancer_site == "All cancer types") %>% 
+  ggplot() +
+  aes(x = year, y = incidences_all_ages, colour = sex) +
+  geom_line() +
+  labs(title = "Incidence of New Cancer Registrations", subtitle = "NHS Borders (1996-2020)", x = "Year of diagnosis", y = "Total number of new cancer cases", colour = "Sex") 
+```
+
+
+Use geom_bar to visualise the above plot
+
+```{r}
+# borders_1996_2020 %>% 
+#   filter(sex != "All" & cancer_site == "All cancer types") %>% 
+#   ggplot() +
+#   aes(x = year, y = incidences_all_ages, colour = sex) +
+#   geom_bar(position = "dodge") +
+#   labs(title = "Incidence of New Cancer Registrations", subtitle = "NHS Borders (1996-2020)", x = "Year of diagnosis", y = "Total number of new cancer cases", colour = "Sex") 
+```
+
+
+
+
+
+```{r}
+borders_1996_2020 %>% 
+  filter(cancer_site != "All cancer types" & sex == "All") %>% 
+  ggplot() +
+  aes(x = year, y = incidences_all_ages, colour = cancer_site) +
+  geom_line() +
+  facet_wrap(
+    ~ cancer_site,
+    scales = "free",
+    labeller = as_labeller(
+      function(x) {
+        str_trunc(x, 15)
+      }
+    )
+  ) +
+  labs(title = "Trends by Cancer Type", subtitle = "NHS Borders (1996-2020)", x = "Timeline", y = "New cancer cases", colour = "Cancer Type") + 
+  theme(legend.position = "none", 
+        strip.text.x = element_text(size = 8, hjust = 0),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        panel.grid = element_blank())
+```
+
+
+```{r}
+borders_1996_2020 %>% 
+  filter(cancer_site != "All cancer types" & sex == "All") %>% 
+  group_by(cancer_site) %>% 
+  summarise(total = sum(incidences_all_ages)) %>% 
+  arrange(desc(total))
+```
+
