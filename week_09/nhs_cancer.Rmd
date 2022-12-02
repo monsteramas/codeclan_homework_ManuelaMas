@@ -1,7 +1,7 @@
 ---
-title: "Untitled"
+title: "Cancer Incidence across NHS Borders"
 author: "Manuela Mastrogiovanni"
-date: "2022-11-28"
+date: "2022-12-01"
 output: html_document
 ---
 
@@ -9,80 +9,69 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r echo=FALSE, message=FALSE}
 library(tidyverse)
-library(hash)
 library(janitor)
-```
-
-
-## R Markdown
-
-```{r}
-datasets = hash()
-for (filepath in list.files(here::here("raw_data"),
-                            full.names = TRUE)) {
-  datasets[filepath] = read_csv(filepath)
-}
-
-
-for (key in keys(datasets)) {
-  d = datasets[[key]]
-  view(d, title = key)
-}
-```
-
-```{r}
-# hb codes
+library(slider)
+# HB codes
 hb <- read_csv("raw_data/geography_codes_and_labels_hb2014_01042019.csv")
-# all cancers for the whole scotland
-incidence_scot_level <- read_csv("raw_data/opendata_inc9620_scotland.csv")
-# north / south-east / west of scotland
-incidence_cancer_network_region <- read_csv("raw_data/opendata_inc9620_region.csv")
 # all cancers for each HB for 1996-2020, all ages grouped
 incidence_hb <- read_csv("raw_data/opendata_inc9620_hb.csv") %>% 
   clean_names()
-# all cancers for each HB for 2016-2020, with age buckets
-five_years_hb <- read_csv("raw_data/opendata_inc1620comb_hb.csv") %>% 
-  clean_names()
-
-```
-
-
-```{r}
+# all cancers for HB = Borders, for 1996-2020, all ages grouped
 borders_1996_2020 <- incidence_hb %>% 
   filter(hb == "S08000016")
-
-borders_2016_2020 <- five_years_hb %>% 
-  filter(hb == "S08000016")
 ```
 
-```{r}
+---
+
+### Business Requirements  
+
+This report provides an insight of the incidence of cancer in NHS Borders, with the aim to help inform the planning for provision of cancer treatment services.  
+The data was provided by Public Health Scotland ([link](https://www.opendata.nhs.scot/dataset/annual-cancer-incidence)), which is Scotland's national health improvement agency and one of the country's main national public health bodies.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 borders_1996_2020 %>% 
-  filter(sex != "All" & cancer_site == "All cancer types") %>% 
+  filter(sex == "All" & cancer_site == "All cancer types") %>% 
+  mutate(
+    avg_incidence = slide_dbl(
+      .x = incidences_all_ages, 
+      .f = ~ mean(., na.rm = TRUE),
+      .before = 1,
+      .after = 1
+    )
+  ) %>% 
   ggplot() +
-  aes(x = year, y = incidences_all_ages, colour = sex) +
-  geom_line() +
-  labs(title = "Incidence of New Cancer Registrations", subtitle = "NHS Borders (1996-2020)", x = "Year of diagnosis", y = "Total number of new cancer cases", colour = "Sex") 
+  geom_line(aes(x = year, y = incidences_all_ages), colour = "steelblue", alpha = 0.5) +
+  geom_line(aes(x = year, y = avg_incidence), colour = "firebrick") +
+  labs(title = "Incidence of New Cancer Registrations", subtitle = "NHS Borders (1996-2020)", x = "Year of diagnosis", y = "Total number of new cases") 
 ```
 
+Note how after the **highest peak in 2017**, the incidence of new cancer cases have significantly decreased from 2018 onwards.
 
-Use geom_bar to visualise the above plot
 
-```{r}
-# borders_1996_2020 %>% 
-#   filter(sex != "All" & cancer_site == "All cancer types") %>% 
-#   ggplot() +
-#   aes(x = year, y = incidences_all_ages, colour = sex) +
-#   geom_bar(position = "dodge") +
-#   labs(title = "Incidence of New Cancer Registrations", subtitle = "NHS Borders (1996-2020)", x = "Year of diagnosis", y = "Total number of new cancer cases", colour = "Sex") 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+borders_1996_2020 %>%
+  filter(sex != "All" & cancer_site == "All cancer types") %>%
+  ggplot() +
+  aes(x = year, y = incidences_all_ages, fill = sex) +
+  geom_col(stat = "count", position = "dodge") +
+  scale_fill_manual(
+    values = c(
+      "Female" = "#fc8d62",
+      "Male" = "#66c2a5"
+      )
+    ) +
+  labs(title = "Incidence of New Cancer Registrations by Sex", subtitle = "NHS Borders (1996-2020)", x = "Year of diagnosis", y = "Total number of new cases", fill = "Sex") +
+  theme(panel.grid = element_blank())
 ```
 
+On average, **women have been more affected by cancer than men**. This trend changed, in particular between 2015 and 2018.
 
 
 
-
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 borders_1996_2020 %>% 
   filter(cancer_site != "All cancer types" & sex == "All") %>% 
   ggplot() +
@@ -108,7 +97,7 @@ borders_1996_2020 %>%
 ```
 
 
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 borders_1996_2020 %>% 
   filter(cancer_site != "All cancer types" & sex == "All") %>% 
   group_by(cancer_site) %>% 
@@ -116,3 +105,9 @@ borders_1996_2020 %>%
   arrange(desc(total))
 ```
 
+Cancer types that have seen a steep increase over time:  
+- Lip & oral cavity, oropharyngeal, trachea, broncus, lung  
+- Liver  
+- Malignant and non melanoma skin cancer  
+- Pancreas  
+- Colon & colonrectal   
