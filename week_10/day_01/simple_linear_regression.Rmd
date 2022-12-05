@@ -1,0 +1,27 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(modelr)
+```
+
+```{r}
+project <- read_csv(here::here("data/project_management.csv"))
+project
+
+
+project_plot <- project %>%
+  ggplot(aes(x = estimated_length, y = actual_length)) +
+  geom_point()
+project_plot
+
+```
+
+```{r}
+model <- lm(formula = project$actual_length ~ project$estimated_length)
+model
+```
+
