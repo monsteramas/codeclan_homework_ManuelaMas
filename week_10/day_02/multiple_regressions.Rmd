@@ -1,0 +1,111 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(GGally)
+library(ggfortify)
+library(fastDummies)
+```
+
+```{r}
+housing_prices <- read_csv("data/housing_prices.csv")
+housing_prices
+```
+
+```{r}
+# checking if there are NA's
+summary(housing_prices)
+
+# imputing NA's with the total_bedrooms mean
+housing_prices <- housing_prices %>%
+  mutate(total_bedrooms = coalesce(total_bedrooms, median(total_bedrooms, na.rm = TRUE)))
+
+housing_prices
+```
+
+
+
+```{r message=FALSE}
+ggpairs(housing_prices)
+```
+
+```{r}
+housing_prices <- housing_prices %>% 
+  select(-total_bedrooms)
+
+housing_prices
+```
+
+r = 0.643 between median_house_value and median_income and possibly ocean_proximity  
+
+- The response is median_house_value  
+- The predictor is median_income  
+
+```{r}
+housing_prices %>%
+  ggplot(aes(x = median_income, y = median_house_value)) +
+  geom_point() +
+  scale_y_continuous(labels = scales::label_comma()) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs()
+```
+
+```{r}
+lm1 <- lm(median_house_value ~ median_income, data = housing_prices)
+
+autoplot(lm1)
+
+summary(lm1)
+```
+
+
+```{r}
+housing_prices %>%
+  ggplot(aes(y = median_house_value)) + 
+  geom_boxplot() +
+  scale_y_continuous(labels = scales::label_comma())
+```
+
+The median is around 175000, while the estimated median_house_values are accurate to only 74870 on average (residual standard error)  
+
+```{r}
+housing_prices %>% 
+  distinct(ocean_proximity)
+# 5 distinct values ---> 4 dummy variables
+```
+
+```{r}
+housing_prices_dummy <- housing_prices %>%
+  dummy_cols(select_columns = "ocean_proximity", remove_first_dummy = TRUE, remove_selected_columns = TRUE) %>% 
+  janitor::clean_names()
+
+head(housing_prices_dummy)
+# the reference category is <1H OCEAN
+```
+
+```{r}
+housing_prices %>%
+  ggplot(aes(x = ocean_proximity, y = median_house_value)) + 
+  geom_boxplot() +
+  scale_y_continuous(labels = scales::label_comma())
+```
+
+There is evidence to investigate whether or not ocean_proximity has an effect on house_value, and as such we think there is an association between the two variables.  
+
+```{r}
+housing_prices_dummy %>%
+  summarise(correlation = cor(ocean_proximity_island, median_house_value))
+
+housing_prices_dummy %>%
+  summarise(correlation = cor(ocean_proximity_near_bay, median_house_value))
+
+housing_prices_dummy %>%
+  summarise(correlation = cor(ocean_proximity_near_ocean, median_house_value))
+
+housing_prices_dummy %>%
+  summarise(correlation = cor(ocean_proximity_inland, median_house_value))
+```
+Found one strong negative correlation between ocean_proximity_inland and median_house_value  
