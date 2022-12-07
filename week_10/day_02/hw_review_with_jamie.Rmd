@@ -1,0 +1,219 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+library(tidyverse)
+library(GGally)
+library(ggfortify)
+library(fastDummies)
+```
+
+```{r}
+house <- read_csv("data/housing_prices.csv")
+house
+```  
+Notes:  
+- What does one row represent? An aggregate of a district in California  
+- Some variables are raw sums, some are stats, like averages  
+--> do some feature engineering / variablbe transformation to get more stats that are meaningful about these houses  
+
+
+```{r}
+house %>% 
+  select(total_rooms, total_bedrooms) %>% 
+  ggpairs()
+```
+- strongly positively skewed (1, 4)  
+- strongly positively correlated (2)  
+- normal distribution (3)
+
+We could investigate:  
+- (rooms - bedrooms) = non-bedrooms  
+- bedrooms / rooms = proportion of bedrooms  
+
+
+Feature Engineering  
+- The data set we start with is the "raw material"  
+- We can use those to make more meaning and aid interpretation --> "feature engineering"  
+
+
+
+```{r}
+house <- house %>% 
+  mutate(bedrooms_per_house = total_bedrooms / households,
+         rooms_per_house = total_rooms / households,
+         people_per_house = population / households,
+         bedrooms_per_person = total_bedrooms / population,
+         rooms_per_person = total_rooms / population,
+         bedrooms_per_room = total_bedrooms / total_rooms,
+         non_bedrooms_per_house = rooms_per_house - bedrooms_per_house
+         )
+
+glimpse(house)
+
+skimr::skim(house) %>% view()
+```
+
+* Extra idea: start using long & lats to make more meaning --> joining to external city coordinate data, creating labels, flags, or things like distance from city or from the coast.  
+
+
+Let's explore the relationships between the variables - what looks like it influences price?
+
+
+```{r message=FALSE}
+ggpairs1 <- house %>% 
+  select(median_house_value,
+         housing_median_age,
+         median_income,
+         ocean_proximity) %>% 
+  ggpairs()
+
+ggpairs1
+```
+
+- house age and house value = weakly positively correlated  
+- income and house value = strongly positively correlated
+- ocean proximity and house value = 3 categories behave similarly --> what do we do with these? group them?  
+- plot 1 shows the distribution of house values across the various districts = skewed
+
+
+```{r}
+house %>% 
+  count(ocean_proximity)
+```
+
+```{r message=FALSE}
+ggpairs2 <- house %>% 
+  select(median_house_value,
+         total_rooms,
+         rooms_per_house,
+         total_bedrooms,
+         bedrooms_per_house) %>% 
+  ggpairs()
+
+ggpairs2
+```
+
+- all weakly positively correlated to median_house_value  
+
+```{r message=FALSE}
+ggpairs3 <- house %>% 
+  select(median_house_value,
+         households,
+         population,
+         people_per_house,
+         total_rooms,
+         rooms_per_house) %>% 
+  ggpairs()
+
+ggpairs3
+```
+
+- households --> proxy --> urban/city
+
+```{r}
+house %>% 
+  select_if(is.numeric) %>% 
+  skimr::skim()
+```
+
+Might want to do some transformation of highly positively skewed numeric --> e.g. take logs  
+
+```{r}
+mod1 <- lm(median_house_value ~ median_income,
+           data = house)
+
+summary(mod1)
+
+
+```
+
+- stars = significance
+- is the estimate equals to zero or significantly different? --> price = (constant = a = intercept = 45457) + (increment = b = 39987) x income
+- r^2 = explains 41.3% of variation (it goeas from 0 to 1)
+
+```{r}
+autoplot(mod1)
+```
+
+- 1) residual = how wrong we were, how far from our model --> fitted_value = our estimate of the price = what we guessed; residual = the amount we were wrong by; is hovering around zero in a random way  
+- 2) where the points would be if they were normal --> we want our residual to be normal;
+doesn't look like a straight line, indication of long tails  
+- 3) is the amount we are wrong by consistent? is there  pattern? 2 standard deviations wrong --> a pattern of how wrong we were = yes --> where the points are more clustered we are more wrong (?)  
+
+
+
+```{r}
+mod2 <- lm(median_house_value ~ ocean_proximity,
+           data = house)
+
+summary(mod2)
+```
+
+```{r}
+mod3 <- lm(median_house_value ~ ocean_proximity + median_income,
+           data = house)
+
+summary(mod3)
+```
+
+```{r}
+library(raster)
+library(leaflet)
+
+raster <- rasterFromXYZ(house %>% 
+  dplyr::select(longitude, latitude, median_house_value), crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+
+pal <- colorNumeric(c("blue", "red", "yellow"), values(raster),
+  na.color = "transparent")
+
+leaflet() %>% 
+  addTiles() %>% 
+  addRasterImage(raster, colors = pal, opacity = 0.7) %>% 
+  addLegend(pal = pal, values = values(raster),
+    title = "Median House Value")
+```
+
+Log transformations  
+
+
+```{r}
+ggplot(house, aes(x = median_income)) +
+  geom_histogram()
+
+ggplot(house, aes(x = log(median_income))) +
+  geom_histogram()
+```
+
+
+lognormal centered around the mean
+
+```{r}
+mod4 <- lm(median_house_value ~ ocean_proximity + 
+             log(median_income) + median_income,
+           data = house)
+
+summary(mod4)
+```
+
+```{r}
+ggplot(house, aes(x = median_house_value)) +
+  geom_histogram()
+
+ggplot(house, aes(x = log(median_house_value))) +
+  geom_histogram()
+```
+
+```{r}
+mod5 <- lm(log(median_house_value) ~ ocean_proximity + 
+             log(median_income) + median_income,
+           data = house)
+
+summary(mod5)
+
+plot(mod5)
+```
+
