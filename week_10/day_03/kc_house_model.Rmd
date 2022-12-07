@@ -1,0 +1,96 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(GGally)
+
+kc_house <- read_csv(here::here("data/kc_house_data.csv"))
+kc_house
+summary(kc_house)
+skimr::skim(kc_house)
+```
+
+### Question 1  
+* You might like to think about removing some or all of `date`, `id`, `sqft_living15`, `sqft_lot15` and `zipcode` (`lat` and `long` provide a better measure of location in any event).  
+* Have a think about how to treat `waterfront`. Should we convert its type?  
+* We converted `yr_renovated` into a `renovated` logical variable, indicating whether the property had ever been renovated. You may wish to do the same.  
+* Have a think about how to treat `view`, `condition` and `grade`. Are they interval or categorical ordinal data types?  
+
+```{r}
+kc_house_trim <- kc_house %>% 
+  select(-c(id, date, zipcode, sqft_living15, sqft_lot15)) %>% 
+  rename(renovated = yr_renovated) %>% 
+  mutate(waterfront = if_else(waterfront == 1, TRUE, FALSE),
+         renovated = if_else(renovated != 0, TRUE, FALSE),
+         view = case_when(view == 0 ~ "NONE",
+                          view == 1 ~ "POOR",
+                          view == 2 ~ "AVERAGE",
+                          view == 3 ~ "GOOD",
+                          view == 4 ~ "VERY GOOD"),
+         condition = case_when(condition == 1 ~ "VERY POOR",
+                               condition == 2 ~ "POOR",
+                               condition == 3 ~ "AVERAGE",
+                               condition == 4 ~ "GOOD",
+                               condition == 5 ~ "VERY GOOD"),
+         grade = case_when(grade >= 11 ~ "VERY HIGH",
+                           grade >= 9 ~ "HIGH",
+                           grade >= 6 ~ "AVERAGE",
+                           grade >= 4 ~ "POOR",
+                           TRUE ~ "VERY POOR")
+         )
+
+kc_house_trim
+```
+
+Unsure whether to use the dummy_cols() function to treat the categorical ordinal data types (view, condition, grade).  
+
+### Question 2  
+* Check for aliased variables using the alias() function (this takes in a formula object and a data set).  
+[Hint - formula price ~ . says ‘price varying with all predictors’, this is a suitable input to alias()].  
+* Remove variables that lead to an alias. Check the ‘Elements of multiple regression’ lesson for a dropdown containing further information on finding aliased variables in a dataset.  
+
+```{r}
+alias(lm(price ~ ., data = kc_house_trim))
+```
+The sqft_basement can be deduced by calculating sqft_living - sqft_above, therefore it can be dropped.  
+
+```{r}
+kc_house_trim <- kc_house_trim %>% 
+  select(-sqft_basement)
+
+kc_house_trim
+```
+
+### Question 3  
+Systematically build a regression model containing up to four main effects (remember, a main effect is just a single predictor with coefficient), testing the regression diagnostics as you go and the same in subsequent rounds of predictor selection with the resid column.   
+[Hint - Splitting datasets into numeric and non-numeric columns might help ggpairs() run in manageable time, although you will need to add either a price or resid column to the non-numeric dataframe in order to see its correlations with the non-numeric predictors].  
+
+Remember, if you are not sure whether including a categorical predictor is statistically justified, run an anova() test passing in the models with- and without the categorical predictor and check the p-value of the test. 
+
+```{r message=FALSE}
+houses_tidy_numeric <- kc_house_trim %>%
+  select_if(is.numeric)
+
+houses_tidy_nonnumeric <- kc_house_trim %>%
+  select_if(function(x) !is.numeric(x))
+
+houses_tidy_nonnumeric$price <- kc_house_trim$price
+
+ggpairs(houses_tidy_numeric)
+
+houses_tidy_nonnumeric %>% 
+  select(price, everything()) %>% 
+  ggpairs(aes(colour = condition, alpha = 0.5))
+```
+
+*Numeric*  
+The house price is strongly positively correlated to:  
+1 - sqft_living  
+2 - sqft_above  
+3 - bathrooms  
+4 - bedrooms  
+
+*Non numeric*
