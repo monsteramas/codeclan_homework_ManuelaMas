@@ -1,0 +1,114 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(modelr)
+library(GGally)
+library(ggfortify)
+```
+
+```{r}
+avocados <- read_csv(here::here("data/avocado.csv")) %>% 
+  janitor::clean_names()
+```
+
+```{r}
+glimpse(avocado)
+summary(avocado)
+avocado %>% 
+  select(-x1) %>% 
+  skimr::skim()
+```
+
+```{r}
+# split for train-test
+
+set.seed(101)
+test_index <- sample(1:nrow(avocados),
+                     0.1 * nrow(avocados))
+
+avo_test <- avocados %>% slice(test_index)
+avo_train <- avocados %>%  slice(-test_index)
+
+# put the test on a side and pretend the train data is all we have
+```
+
+```{r}
+# explore content of variables
+
+```
+
+```{r}
+avocados %>% distinct(region)
+```
+
+```{r}
+avo_train %>% 
+  summarise_if(is.numeric,
+                   mean)
+```
+
+
+```{r}
+# feature engineering: get volumes as proportions, refactor dates
+avocados_tidy <- avo_train %>%
+  mutate(month = month(date, label = TRUE, abbr = FALSE),
+         #quarter,
+         #month_week
+         ) %>%
+  mutate(ratio_small_sold = small_sold/total_volume,
+         ratio_large_sold = large_sold/total_volume,
+         ratio_x_large_sold = x_large_sold/total_volume,
+         ratio_small_bags = small_bags/total_volume,
+         ratio_large_bags = large_bags/total_volume,
+         ratio_x_large_bags = x_large_bags/total_volume,
+         ratio_total_bags = total_bags/total_volume) %>%
+  select(-c(date, x1))
+
+avo_train %>% 
+  group_by(region) %>% 
+  summarise(sum_vol = sum(total_volume))
+```
+
+```{r}
+# from Jamie
+avocados %>%
+  mutate(across(x4046:large_bags, ~.x / total_volume),
+         hfh = x4046 + x4225 + x4770 + small_bags + large_bags)
+```
+
+
+
+```{r}
+# analysis on regions from Jamie
+avocados %>%
+  distinct(region)
+
+avocados %>% 
+  filter(region == "TotalUS",
+         date == "2015-12-27")
+
+avocados %>% 
+  filter(region %in% c("Midsouth", "Northeast", "Plains", "SouthCentral", "Southeast", "West", "GreatLakes", "California"),
+         date == "2015-12-27") %>% 
+  group_by(type) %>% 
+  summarise(total_volume = sum(total_volume),
+            x4046 = sum(x4046),
+            total_bags = sum(total_bags))
+
+avocados %>% 
+  filter(!region %in% c("TotalUS", "Midsouth", "Northeast", "Plains", "SouthCentral", "Southeast", "West", "GreatLakes", "California"),
+         date == "2015-12-27") %>% 
+  group_by(type) %>% 
+  summarise(total_volume = sum(total_volume),
+            x4046 = sum(x4046),
+            total_bags = sum(total_bags))
+```
+```{r}
+# from Jamie
+lm_multi <- lm(log(average_price)~1+type+year+region+month+total_volume+x4046+x4225+x4770+small_bags+large_bags+year:type+region:type+region:year+month:type+month:year+month:region+x4046:total_volume+x4225:total_volume+small_bags:total_volume+small_bags:x4046+small_bags:x4225+small_bags:x4770+large_bags:total_volume+large_bags:small_bags+type:total_volume+type:x4225+year:total_volume+year:x4046+year:x4770+year:large_bags+region:total_volume+region:x4225+region:large_bags+month:total_volume+month:x4770+month:small_bags, train) 
+```
+
