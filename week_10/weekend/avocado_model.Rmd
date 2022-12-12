@@ -1,0 +1,104 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(modelr)
+library(GGally)
+library(ggfortify)
+```
+
+```{r}
+avocado <- read_csv(here::here("data/avocado.csv")) %>% 
+  janitor::clean_names()
+```
+
+```{r}
+glimpse(avocado)
+summary(avocado)
+avocado %>% 
+  select(-x1) %>% 
+  skimr::skim()
+```
+All the variables seem to be right;ly skewed apart prom the average_price.  
+The total_volume represents the total sale of avocado for each week: total_volume = x4046 + x4225 + x4770 + total_bags (total_bags = small_bags + large_bags + x_large_bags), therefore I expect a few of these variables to be redundant. The alias() should be able to detect which one can be dropped.  
+
+```{r}
+alias(average_price ~ ., data = avocado)
+```
+
+
+```{r}
+avocado_extended <- avocado %>% 
+  mutate(is_organic = if_else(type == "organic", TRUE, FALSE),
+         month = lubridate::month(date, label = TRUE, abbr = TRUE)
+  ) %>% 
+  select(-c(region, type))
+
+avocado_extended_with_mean <- avocado_extended %>% 
+  mutate(week = lubridate::week(date)) %>%
+  group_by(week, is_organic) %>% 
+  mutate(avg_price_per_week = mean(average_price))
+
+avocado_extended_with_mean %>% 
+  filter(year == 2015) %>% 
+  group_by(week) %>% 
+  mutate(avg = mean(avg_price_per_week)) %>% 
+  arrange(week)
+```
+
+```{r}
+avocado_extended_with_mean %>% 
+  ggplot(aes(x = week, y = avg_price_per_week, group = year, colour = is_organic)) +
+  geom_line() +
+  facet_wrap(~ is_organic)
+```
+
+```{r}
+alias(average_price ~ ., data = avocado_extended_with_mean)
+```
+
+```{r}
+avocado_test <- avocado_extended %>% 
+  select(-c(x1, date))
+```
+
+```{r message=FALSE}
+ggpairs(avocado_test)
+```
+We appreciate 2 different behaviours in average_price when looking at organic and conventional avocados.  
+
+```{r}
+avocado_test %>%
+  ggplot(aes(x = is_organic, y = average_price)) + 
+  geom_boxplot()
+```
+
+The distributions of FALSE and TRUE are different (avg_price looks higher for organic avocados).  There is evidence to investigate whether or not there is an association between the two variables.  
+
+```{r}
+avocado_test %>%
+  summarise(cor = cor(is_organic, average_price))
+```
+
+```{r}
+model1 <- lm(average_price ~ is_organic, data = avocado_test)
+summary(model1)
+autoplot(model1)
+```
+
+```{r}
+avocado_test %>%
+  summarise(cor = cor(total_volume, average_price))
+```
+
+
+
+```{r}
+model2 <- lm(average_price ~ total_volume, data = avocado_test)
+summary(model2)
+autoplot(model2)
+```
+
