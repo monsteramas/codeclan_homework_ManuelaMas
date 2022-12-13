@@ -46,18 +46,7 @@ One of the algorithms used for Classification is the **Naive Bayes Algorithm**.
 
 The core of the classifier depends on the **Bayes theorem** with an *assumption of independence among predictors*. That means changing the value of a feature doesn’t change the value of another feature.  
 It is called **Naive** because of the assumption that 2 variables are independent when they may not be. In a real-world scenario, there is hardly any situation where the features are independent.  
-It can be used in:  
 
-- *Binary Classification*: refers to those classification tasks that have two class labels. Typically, binary classification tasks involve one class that is the normal state and another class that is the abnormal state. Examples include:  
-  - Email spam detection (spam or not)  
-  - Churn prediction (churn or not)  
-  - Conversion prediction (buy or not)  
-
-- *Multi-Class Classification*: refers to those classification tasks that have more than two class labels.
-Examples include:  
-  - Face classification  
-  - Plant species classification  
-  - Optical character recognition  
   
 Unlike binary classification, multi-class classification does not have the notion of normal and abnormal outcomes. Instead, examples are classified as belonging to one among a range of known classes.  
 
@@ -72,7 +61,20 @@ Basically, we are trying to find the probability of event A, given event B is tr
 
 **P(B|A)** is called the **posterior probability** = the probability of an event after the evidence is seen  
 
+It can be used in:  
 
+- *Binary Classification*: refers to those classification tasks that have two class labels. Typically, binary classification tasks involve one class that is the normal state and another class that is the abnormal state. Examples include:  
+  - Email spam detection (spam or not)  
+  - Churn prediction (churn or not)  
+  - Conversion prediction (buy or not)  
+
+- *Multi-Class Classification*: refers to those classification tasks that have more than two class labels.
+Examples include:  
+  - Face classification  
+  - Plant species classification  
+  - Optical character recognition  
+  
+  
 ### Pro and Cons  
 
 This probabilistic machine learning model is **fast and easy to build** and is mostly used for **large datasets**. Along with simplicity, Naive Bayes is known to **outperform even highly sophisticated classification methods**. Naive Bayes is also a good choice when **CPU and memory** resources are a limiting factor.  

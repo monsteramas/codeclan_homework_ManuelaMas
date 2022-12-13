@@ -433,8 +433,22 @@ change the value of another feature.<br />
 It is called <strong>Naive</strong> because of the assumption that 2
 variables are independent when they may not be. In a real-world
 scenario, there is hardly any situation where the features are
-independent.<br />
-It can be used in:</p>
+independent.</p>
+<p>Unlike binary classification, multi-class classification does not
+have the notion of normal and abnormal outcomes. Instead, examples are
+classified as belonging to one among a range of known classes.</p>
+<p><strong>Bayes theorem</strong> provides a means for calculating the
+probability of an event given some information.<br />
+Mathematically, Bayes theorem can be stated as:</p>
+<p>P(B|A) = [P(A|B)*P(B)] / P(A)</p>
+<p>Basically, we are trying to find the probability of event A, given
+event B is true –&gt; <strong>Conditional Probability</strong></p>
+<p><strong>P(B)</strong> is called <strong>prior probability</strong> =
+the probability of an event before the evidence</p>
+<p><strong>P(B|A)</strong> is called the <strong>posterior
+probability</strong> = the probability of an event after the evidence is
+seen</p>
+<p>It can be used in:</p>
 <ul>
 <li><em>Binary Classification</em>: refers to those classification tasks
 that have two class labels. Typically, binary classification tasks
@@ -457,20 +471,6 @@ tasks that have more than two class labels. Examples include:
 <li>Optical character recognition</li>
 </ul></li>
 </ul>
-<p>Unlike binary classification, multi-class classification does not
-have the notion of normal and abnormal outcomes. Instead, examples are
-classified as belonging to one among a range of known classes.</p>
-<p><strong>Bayes theorem</strong> provides a means for calculating the
-probability of an event given some information.<br />
-Mathematically, Bayes theorem can be stated as:</p>
-<p>P(B|A) = [P(A|B)*P(B)] / P(A)</p>
-<p>Basically, we are trying to find the probability of event A, given
-event B is true –&gt; <strong>Conditional Probability</strong></p>
-<p><strong>P(B)</strong> is called <strong>prior probability</strong> =
-the probability of an event before the evidence</p>
-<p><strong>P(B|A)</strong> is called the <strong>posterior
-probability</strong> = the probability of an event after the evidence is
-seen</p>
 </div>
 <div id="pro-and-cons" class="section level3">
 <h3>Pro and Cons</h3>
