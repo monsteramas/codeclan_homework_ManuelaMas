@@ -171,3 +171,54 @@ The .estimate column in the output shows the probability of correctly predicting
 confusionMatrix(titanic_test_pred$pred, titanic_test_pred$survived)
 ```
 
+### Planting the Random Forest  
+
+```{r}
+# install.packages("ranger")
+library(ranger)
+
+control <- trainControl(
+  method = "repeatedcv", 
+  number = 5, 
+  repeats = 10
+)
+
+rf_tune <- train(
+  survived ~ ., 
+  data = titanic_samples$SAMP2, # train sample
+  method = "ranger",
+  metric = "Kappa",
+  num.trees = 1000,
+  importance = "impurity",
+  trControl = control
+)
+
+plot(rf_tune)
+
+```
+
+```{r}
+rf_tune
+```
+
+```{r}
+rf_classifier <- ranger(survived ~ ., mtry = 3, data = titanic_samples$SAMP2, splitrule = "gini", min.node.size = 5, num.trees = 1000, importance = "impurity")
+```
+
+```{r}
+titanic_train_pred <- titanic_samples$SAMP2 %>%
+  mutate(pred = predict(rf_classifier, data = titanic_samples$SAMP2)$predictions)
+
+confusionMatrix(data = titanic_train_pred$pred, reference = titanic_train_pred$survived)
+```
+
+```{r}
+titanic_test_pred <- titanic_samples$SAMP2 %>% # test sample
+  mutate(pred = predict(rf_classifier, data = titanic_samples$SAMP2)$predictions)
+
+confusionMatrix(data = titanic_test_pred$pred, reference = titanic_test_pred$survived)
+```
+
+```{r}
+importance(rf_classifier)
+```
