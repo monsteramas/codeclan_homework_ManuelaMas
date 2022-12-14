@@ -1,0 +1,196 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(janitor)
+library(broom)
+library(tidyverse)
+library(factoextra)
+```
+
+```{r}
+customers <- read_csv(here::here("data/mall_customers.csv")) %>% 
+  clean_names()
+
+customers
+```
+
+### Question 1  
+
+Do some exploratory analysis on the data. Comment on findings.
+
+```{r}
+summary(customers)
+
+# check if we have NAs
+customers %>% 
+  summarise(across(everything(), .fns = ~sum(is.na(.x))))
+```
+
+```{r}
+customers %>% 
+  ggplot() +
+  aes(x = age, y = annual_income_k) +
+  geom_point()
+# no clear relationship between age and annual income
+
+customers %>% 
+  ggplot() +
+  aes(x = age, y = spending_score_1_100) +
+  geom_point()
+# some patterns between age and spending score, customers under 40 have higher spending score than those over 40
+
+customers %>% 
+  ggplot() +
+  aes(x = annual_income_k, y = spending_score_1_100) +
+  geom_point()
+# can see 5 different types of behaviours here
+
+customers %>% 
+  ggplot() +
+  aes(x = annual_income_k, y = spending_score_1_100) +
+  geom_point() +
+  facet_wrap(~gender)
+# not much difference between male and female, we still see 5 groups
+```
+The relationship between annual income and spending score seems promising in terms of having different groups of behaviour.  
+
+
+### Question 2  
+
+We are interested in creating a marketing campaign to target customers based on their spending score and annual income. Perform a k-means clustering to find if there are meaningful clusters in the data to target the customers.  
+
+```{r}
+customers_sub <- customers %>% 
+  select(annual_income_k, spending_score_1_100)
+
+
+customers_sub %>% 
+  ggplot(aes(x = annual_income_k, y = spending_score_1_100)) +
+  geom_point()  
+```
+Can definitely identify 5 clusters or maybe more  
+
+
+```{r}
+# check if needs scaling
+customers_sub %>%
+  as_tibble() %>%
+  pivot_longer(cols = c(annual_income_k, spending_score_1_100), 
+               names_to = "type", 
+               values_to = "value") %>% 
+  group_by(type)%>%
+  summarise(mean = round(mean(value)), 
+            sd = sd(value))
+
+# scaling
+customers_scale <- customers_sub %>%
+                mutate_if(is.numeric, scale)
+
+# checking if scaled
+customers_scale %>%
+  as_tibble() %>%
+  pivot_longer(cols = c(annual_income_k, spending_score_1_100), 
+               names_to = "type", 
+               values_to = "value") %>% 
+  group_by(type)%>%
+  summarise(mean = round(mean(value)), 
+            sd = sd(value))
+```
+
+
+
+
+1- Elbow method
+
+```{r}
+# library(factoextra)
+fviz_nbclust(customers_scale, 
+             kmeans, 
+             method = "wss", 
+             nstart = 25)
+```
+This graph is smoother than we want it to be - there is a kind of an elbow around 3 and 5   
+
+
+2 - Silhouette coefficient Method
+
+```{r}
+fviz_nbclust(customers_scale, 
+             kmeans, 
+             method = "silhouette", 
+             nstart = 25)
+```
+
+Definitely better - we've got something at 5, but 6 and 7 are not very far    
+
+
+3- Gap statistic
+
+```{r}
+fviz_nbclust(customers_scale, 
+             kmeans, 
+             method = "gap_stat",
+             nstart = 25)
+```
+
+This gives us k = 1 (confusing different results!)  
+It may mean the data is not suitable for k-means clustering  
+
+
+
+### Question 3  
+
+Perform k-means clustering and chose a value of k.  
+
+```{r}
+# choosing 5 as it was my initial intuition when plotting the 2 variables
+clustered_customers <- kmeans(customers_scale, 
+                              centers = 5, 
+                              nstart = 25)
+
+clustered_customers
+```
+```{r}
+clustered_customers$size
+
+clustered_customers$centers
+```
+
+
+
+
+
+### Question 4  
+
+Visualise the clustering for your chosen value of k.  
+
+```{r}
+clusters <- augment(clustered_customers, customers)
+
+ggplot(clusters, aes(x = annual_income_k, y = spending_score_1_100, colour = .cluster)) +
+  geom_point() 
+```
+ 
+
+### Question 5  
+
+Do you think the clustering seems a good fit for this data? 
+
+Tried also with 7 clusters and as expected the data point for  x > 100 fall into 2 more groups (above and below y = 50).  
+
+In spite of the different results using the 3 different methods, I believe the initial intuition of 5 clusters still holds.  
+
+
+
+
+### Question 6  
+
+Comment on the attributes on one or two of the clusters (maybe even give them a label if you like - like in section 4.1 of the ‘Segmentation & clustering intro’ lesson).  
+
+For annual income > 60k we can see 2 very different types of behaviours:  
+1) The wise buyer - their spending score ranges between 0 and 40 (on a scale from 0 to 100), despite their income getting fairly high    
+2) The wild customer - their spending score is > 60 (out of 100) and they definitely enjoy their life  
+
