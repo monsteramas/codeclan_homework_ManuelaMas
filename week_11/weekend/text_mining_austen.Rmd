@@ -1,0 +1,179 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidytext)
+library(tidyverse)
+library(janeaustenr)
+library(wesanderson)
+```
+
+
+### Question 1  
+Find the most common words in both Pride & Prejudice and Sense & Sensibility.  
+
+
+```{r}
+# create a tibble of Pride and Prejudice book and unnest words
+pride_book <- tibble(
+  id = 1:length(prideprejudice),
+  text = prideprejudice
+) %>% 
+  unnest_tokens(word, text)
+
+pride_book
+```
+
+```{r}
+# find the most common words in P&P
+pride_book %>%
+  count(word, sort = TRUE)
+```
+
+```{r}
+# create a tibble of Sense and Sensibility book and unnest words
+sense_book <- tibble(
+  id = 1:length(sensesensibility),
+  text = sensesensibility
+) %>% 
+  unnest_tokens(word, text)
+
+sense_book
+```
+
+```{r}
+# find the most common words in S&S
+sense_book %>% 
+  count(word, sort = TRUE)
+```
+
+### Question 2  
+Find the most common words in both Pride & Prejudice and Sense & Sensibility, not including stop words.  
+
+```{r}
+# exclude stopwords and find the most common words in P&P
+pride_book %>%
+  anti_join(stop_words) %>%
+  count(word, sort = TRUE)
+```
+
+```{r}
+# exclude stopwords and find the most common words in S&S
+sense_book %>% 
+  anti_join(stop_words) %>% 
+  count(word, sort = TRUE)
+```
+
+### Question 3  
+Find the most common sentiment words in both Pride & Prejudice and Sense & Sensibility.  
+
+
+```{r}
+# save the P&P text with no stopwords
+pp <- pride_book %>%
+  anti_join(stop_words) 
+```
+
+```{r}
+# find sentiment words in P&P using using the loughran lexicon
+pp_sentiments <- pp %>%
+  inner_join(get_sentiments("loughran"))
+
+pp_sentiments
+```
+
+```{r}
+# find the most common sentiment words in P&P
+most_common_sentiments_pp <- pp_sentiments %>%
+  count(word, sort = TRUE) %>% 
+  slice_head(n = 10)
+
+most_common_sentiments_pp
+```
+
+
+```{r}
+# save the S&S text with no stopwords
+ss <- sense_book %>%
+  anti_join(stop_words) 
+```
+
+```{r}
+# find sentiment words in S&S using using the loughran lexicon
+ss_sentiments <- ss %>%
+  inner_join(get_sentiments("loughran"))
+
+ss_sentiments
+```
+
+```{r}
+# find the most common sentiment words in S&S
+most_common_sentiments_ss <- ss_sentiments %>%
+  count(word, sort = TRUE) %>% 
+  slice_head(n = 10)
+
+most_common_sentiments_ss
+```
+
+
+### Extension  
+Taking your results above, can you create a plot which visualises the differences between the books?  
+
+
+```{r}
+# pull a vector of the above sentiment words in P&P to use as a filter
+most_common_sentiments_pp_words = most_common_sentiments_pp %>% pull(word)
+# plot them to visualise how many times they occur, and associated sentiments
+pp_sentiments %>% 
+  filter(word %in% c(most_common_sentiments_pp_words)) %>% 
+  mutate(word = factor(word, levels = most_common_sentiments_pp_words)) %>%
+  ggplot() +
+  aes(x = word, fill = sentiment) +
+  geom_bar() +
+  scale_fill_manual(values = wes_palette("FantasticFox1"))
+```
+
+```{r}
+# pull a vector of the above sentiment words in S&S to use as a filter
+most_common_sentiments_ss_words = most_common_sentiments_ss %>% pull(word)
+# plot them to visualise how many times they occur, and associated sentiments
+ss_sentiments %>% 
+  filter(word %in% c(most_common_sentiments_ss_words)) %>% 
+  mutate(word = factor(word, levels = most_common_sentiments_ss_words)) %>%
+  ggplot() +
+  aes(x = word, fill = sentiment) +
+  geom_bar() +
+  scale_fill_manual(values = wes_palette("FantasticFox1"))
+```
+
+```{r}
+# save a tibble of all most common sentiments words in P&P
+# add a column with book name to use in facet_wrap() afterwards
+most_common_sentiments_pp_words_all <- pp_sentiments %>% 
+  filter(word %in% c(most_common_sentiments_pp_words)) %>% 
+  mutate(word = factor(word, levels = most_common_sentiments_pp_words),
+         book = "Pride and Prejudice")
+
+# save a tibble of all most common sentiments words in S&S
+# add a column with book name to use in facet_wrap() afterwards
+most_common_sentiments_ss_words_all <- ss_sentiments %>% 
+  filter(word %in% c(most_common_sentiments_ss_words)) %>% 
+  mutate(word = factor(word, levels = most_common_sentiments_ss_words),
+         book = "Sense and Sensibility")
+
+# bind the two tibbles
+compare_pp_ss <- rbind(most_common_sentiments_pp_words_all, most_common_sentiments_ss_words_all)
+```
+
+```{r}
+# compare the most common sentiment words in the two books (number of occurrences and associated sentiments) 
+compare_pp_ss %>%
+  ggplot() +
+  aes(x = word, fill = sentiment) +
+  geom_bar() +
+  facet_wrap(~ book) +
+  scale_fill_manual(values = wes_palette("FantasticFox1")) +
+  theme(axis.text.x = element_text(size = 8, angle = 45, vjust = 1, hjust = 1))
+```
